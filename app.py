@@ -1,8 +1,8 @@
 """Flask app for Notes"""
 import os
-from flask import Flask, request, jsonify, render_template, redirect, flash
+from flask import Flask, request, render_template, redirect, flash, session
 from models import db, connect_db, User
-from forms import RegisterUserForm
+from forms import RegisterUserForm, LoginForm
 
 
 app = Flask(__name__)
@@ -38,19 +38,57 @@ def register():
         first_name = form.first_name.data
         last_name = form.last_name.data
 
-        new_user = User(
-            username=username,
-            password=password,
-            email=email,
-            first_name=first_name,
-            last_name=last_name
-        )
+        new_user =User.register(username, password, email, first_name, last_name)
 
         db.session.add(new_user)
         db.session.commit()
 
-        flash(f'Successfully added {new_user.name}')
+        session['user_id'] = new_user.id
+
+        flash(f'Successfully added {new_user.username}')
         return redirect(f'/users/{new_user.username}')
 
     else:
         return render_template('register.html', form=form)
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    ''' show and handle the user login form '''
+
+    form = LoginForm()
+
+    if form.validate_on_submit():
+
+        username = form.username.data
+        password = form.password.data
+
+        user =  User.authenticate(username, password)
+
+        if user:
+            session['user_id'] = user.id
+            return redirect(f'/users/{user.username}')
+
+        else:
+            # why is this in square brackets?
+            form.username.errors = ['Incorrect username or password']
+
+    return render_template('login.html', form=form)
+
+
+
+@app.get('/users/<username>')
+def show_user(username):
+    # are we supposed to do anything with username here?
+    ''' display information about a particular user '''
+
+    if 'user_id' not in session:
+        flash('You must logged in to view this page')
+        return redirect('/')
+
+    else:
+        user = User.query.get(session['user_id'])
+        return render_template('profile.html', user=user)
+
+
+

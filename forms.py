@@ -15,3 +15,17 @@ class RegisterUserForm(FlaskForm):
     first_name = StringField('First Name', validators=[InputRequired()])
 
     last_name = StringField('Last Name', validators=[InputRequired()])
+
+
+
+class LoginForm(FlaskForm):
+    ''' Form for logging in to the notes app '''
+
+    username = StringField('User Name', validators=[InputRequired()])
+
+    password = StringField('Password', validators=[InputRequired()])
+
+
+
+class CSRFProtectForm(FlaskForm):
+    """ Form just for CSRF Protection """
