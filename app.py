@@ -2,7 +2,7 @@
 import os
 from flask import Flask, request, render_template, redirect, flash, session
 from models import db, connect_db, User
-from forms import RegisterUserForm, LoginForm
+from forms import RegisterUserForm, LoginForm, CSRFProtectForm
 
 
 app = Flask(__name__)
@@ -82,13 +82,26 @@ def show_user(username):
     # are we supposed to do anything with username here?
     ''' display information about a particular user '''
 
+    form = CSRFProtectForm()
+
     if 'user_id' not in session:
         flash('You must logged in to view this page')
         return redirect('/')
 
     else:
         user = User.query.get(session['user_id'])
-        return render_template('profile.html', user=user)
+        return render_template('profile.html', user=user, form=form)
 
 
 
+@app.post("/logout")
+def logout():
+    """Logs user out and redirects to homepage."""
+
+    form = CSRFProtectForm()
+
+    if form.validate_on_submit():
+        # Remove "user_id" if present, but no errors if it wasn't
+        session.pop("user_id", None)
+
+    return redirect("/")

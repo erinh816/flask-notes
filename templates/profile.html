@@ -6,4 +6,19 @@
 
 <h1>Profile page for {{ user.first_name }} {{ user.last_name }} </h1>
 
+<ul>
+  {% if 'user_id' not in session %}
+  <li><a href="/register">Register</a></li>
+  <li><a href="/login">Login</a></li>
+  {% endif %}
+
+  {% if 'user_id' in session %}
+
+  <form action="/logout" method="POST">
+    {{form.hidden_tag()}}
+    <button type="submit" class="btn btn-primary">Logout</button>
+  </form>
+  {% endif %}
+</ul>
+
 {% endblock %}
