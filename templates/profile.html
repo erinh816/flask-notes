@@ -6,19 +6,29 @@
 
 <h1>Profile page for {{ user.first_name }} {{ user.last_name }} </h1>
 
+{% for note in user.notes %}
 <ul>
-  {% if 'user_id' not in session %}
-  <li><a href="/register">Register</a></li>
-  <li><a href="/login">Login</a></li>
-  {% endif %}
-
-  {% if 'user_id' in session %}
-
-  <form action="/logout" method="POST">
-    {{form.hidden_tag()}}
-    <button type="submit" class="btn btn-primary">Logout</button>
-  </form>
-  {% endif %}
+  <li>
+    <a href="/nosts/{{note.id}}/update"> {{ note.title }}</a>
+    <form>
+      <button type="submit" formaction="/notes/{{note.id}}/delete" formmethod="POST">Delete</button>
+    </form>
+  </li>
 </ul>
+{% endfor %}
+
+<a href="/users/{{user.username}}/notes/add">Add New Note</a>
+
+
+<form action="/logout" method="POST">
+  {{form.hidden_tag()}}
+  <button type="submit" class="btn btn-primary">Logout</button>
+</form>
+
+<form action="/users/{{user.username}}/delete" method="POST">
+  {{form.hidden_tag()}}
+  <button type="submit" class="btn btn-primary">Delete User Forever</button>
+</form>
+
 
 {% endblock %}

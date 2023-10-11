@@ -1,6 +1,7 @@
 """Flask app for Notes"""
 import os
-from flask import Flask, request, render_template, redirect, flash, session
+from flask import Flask, render_template, redirect, flash, session
+from werkzeug.exceptions import Unauthorized
 from models import db, connect_db, User
 from forms import RegisterUserForm, LoginForm, CSRFProtectForm
 
@@ -17,6 +18,9 @@ app.config['SQLALCHEMY_ECHO'] = True
 connect_db(app)
 
 
+USER_SESSION_KEY = 'username'
+
+
 @app.get('/')
 def homepage():
     ''' redirect user to /register '''
@@ -26,7 +30,11 @@ def homepage():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    ''' shows and handles user registration form '''
+    ''' shows or handles user registration form '''
+
+    # why can't use if session[USER_SESSION_KEY]
+    if USER_SESSION_KEY in session:
+        return redirect(f'/users/{session[USER_SESSION_KEY]}')
 
     form = RegisterUserForm()
 
@@ -38,12 +46,12 @@ def register():
         first_name = form.first_name.data
         last_name = form.last_name.data
 
-        new_user =User.register(username, password, email, first_name, last_name)
+        new_user = User.register(username, password, email, first_name, last_name)
 
         db.session.add(new_user)
         db.session.commit()
 
-        session['user_id'] = new_user.id
+        session[USER_SESSION_KEY] = new_user.username
 
         flash(f'Successfully added {new_user.username}')
         return redirect(f'/users/{new_user.username}')
@@ -52,9 +60,14 @@ def register():
         return render_template('register.html', form=form)
 
 
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    ''' show and handle the user login form '''
+    ''' show or handle the user login form '''
+
+    # why can't use if session[USER_SESSION_KEY]
+    if USER_SESSION_KEY in session:
+        return redirect(f'/users/{session[USER_SESSION_KEY]}')
 
     form = LoginForm()
 
@@ -66,11 +79,10 @@ def login():
         user =  User.authenticate(username, password)
 
         if user:
-            session['user_id'] = user.id
+            session[USER_SESSION_KEY] = user.username
             return redirect(f'/users/{user.username}')
 
         else:
-            # why is this in square brackets?
             form.username.errors = ['Incorrect username or password']
 
     return render_template('login.html', form=form)
@@ -79,17 +91,16 @@ def login():
 
 @app.get('/users/<username>')
 def show_user(username):
-    # are we supposed to do anything with username here?
     ''' display information about a particular user '''
 
-    form = CSRFProtectForm()
-
-    if 'user_id' not in session:
-        flash('You must logged in to view this page')
-        return redirect('/')
+    if USER_SESSION_KEY not in session or session[USER_SESSION_KEY] != username:
+        raise Unauthorized()
 
     else:
-        user = User.query.get(session['user_id'])
+
+        form = CSRFProtectForm()
+        user = User.query.get_or_404(username)
+
         return render_template('profile.html', user=user, form=form)
 
 
@@ -101,7 +112,29 @@ def logout():
     form = CSRFProtectForm()
 
     if form.validate_on_submit():
-        # Remove "user_id" if present, but no errors if it wasn't
-        session.pop("user_id", None)
+        session.pop(USER_SESSION_KEY)
 
     return redirect("/")
+
+
+@app.post('/users/<username>/delete')
+def delete_user(username):
+    ''' handles delete user button '''
+
+    form = CSRFProtectForm()
+
+    if form.validate_on_submit():
+
+        user = User.query.get_or_404(username)
+
+        for note in user.notes:
+            db.session.delete(note)
+
+        db.session.delete(user)
+        db.session.commit()
+
+        flash(f'Successfully deleted {username}')
+        return redirect('/')
+
+    else:
+        raise Unauthorized()
