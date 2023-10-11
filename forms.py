@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField
+from wtforms import StringField, PasswordField, TextAreaField
 from wtforms.validators import InputRequired, Email, Length
 
 
@@ -24,6 +24,15 @@ class LoginForm(FlaskForm):
     username = StringField('User Name', validators=[InputRequired()])
 
     password = PasswordField('Password', validators=[InputRequired()])
+
+
+class AddNoteForm(FlaskForm):
+    ''' Form for adding new note'''
+
+    title = StringField('Note Title', validators=[InputRequired()])
+
+    content = TextAreaField("Content", validators=[InputRequired()])
+
 
 
 # name can be anything, hidden field is there with all FlaskForms

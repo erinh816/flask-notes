@@ -2,8 +2,8 @@
 import os
 from flask import Flask, render_template, redirect, flash, session
 from werkzeug.exceptions import Unauthorized
-from models import db, connect_db, User
-from forms import RegisterUserForm, LoginForm, CSRFProtectForm
+from models import db, connect_db, User, Note
+from forms import RegisterUserForm, LoginForm, CSRFProtectForm, AddNoteForm
 
 
 app = Flask(__name__)
@@ -32,7 +32,7 @@ def homepage():
 def register():
     ''' shows or handles user registration form '''
 
-    # why can't use if session[USER_SESSION_KEY]
+    # why can't use if session[USER_SESSION_KEY] - key error!
     if USER_SESSION_KEY in session:
         return redirect(f'/users/{session[USER_SESSION_KEY]}')
 
@@ -65,7 +65,7 @@ def register():
 def login():
     ''' show or handle the user login form '''
 
-    # why can't use if session[USER_SESSION_KEY]
+    # why can't use if session[USER_SESSION_KEY] - key error!
     if USER_SESSION_KEY in session:
         return redirect(f'/users/{session[USER_SESSION_KEY]}')
 
@@ -138,3 +138,29 @@ def delete_user(username):
 
     else:
         raise Unauthorized()
+
+
+@app.route('/users/<username>/notes/add', methods=['GET', 'POST'])
+def add_note(username):
+    '''Show and handle the form for adding new note'''
+
+    if USER_SESSION_KEY not in session or session[USER_SESSION_KEY] != username:
+        raise Unauthorized()
+
+    form = AddNoteForm()
+
+    if form.validate_on_submit():
+
+        title = form.title.data
+        content = form.content.data
+
+
+        note =  Note(title=title, content=content, owner_username = username)
+
+        db.session.add(note)
+        db.session.commit()
+
+        return redirect(f'/users/{username}')
+
+
+    return render_template('new_note.html', form=form)
